@@ -62,12 +62,42 @@ main:
     addiu   $t0, 25000
     sw      $t0, TIMER
     
-    li      $t0, 10
-    sw      $t0, VELOCITY
+
+
+    li      $t0, 45
+    sw      $t0, ANGLE
+    li      $t1, 1
+    sw      $t1, ANGLE_CONTROL
 
     la      $t0, puzzle
     sw      $t0, REQUEST_PUZZLE
+
+
+
+    lw      $t0, has_puzzle
+    li      $t1, 1
+    bne     $t0, $t1, skip_solve
+
+    la      $a2, puzzle
+    lw      $a0, 0($a2)
+    lw      $a1, 4($a2)
+    la      $a2, solution
+    jal     solver_zero_board   # clear solution
+
+    la      $a0, puzzle
+    la      $a1, solution
+    li      $a2, 0
+    li      $a3, 0
+    jal     solve
+    la      $a1, solution
+    sw      $a1, SUBMIT_SOLUTION
+    sw      $zero, has_puzzle
+    la      $t0, puzzle
+    sw      $t0, REQUEST_PUZZLE
     
+    li      $t0, 10
+    sw      $t0, VELOCITY
+
 loop:
     lw      $t0, has_puzzle
     li      $t1, 1
@@ -674,24 +704,34 @@ timer_interrupt:
     li      $t0, 0
     sw      $t0, VELOCITY          # stop first
 scan:
-    la      $t0, scanner_result
-    sw      $t0, USE_SCANNER
-    lw      $t0, scanner_result
+    la $t0, scanner_result
+    sw $t0, USE_SCANNER
+    lb $t1, 2($t0)
+    li $t2, 2
+    li $t3, 4
+    bne $t1, $t2, skip
+    beq $t1, $t3, skip
+    j   shoot
+    #lw      $t1, BOT_X
+    #lw      $t2, BOT_Y
 
-    lw      $t1, BOT_X
-    lw      $t2, BOT_Y
-
-    beq     $t0, $zero, skip
-    srl     $t0, $t0, 16
-    andi    $t1, $t0, 0x0004
-    beq     $t1, 1, fired
-    andi    $t1, $t0, 0x0001
-    beq     $t1, 1, skip
+    #beq     $t0, $zero, skip
+    #srl     $t0, $t0, 16
+    #andi    $t1, $t0, 0x0004
+    #beq     $t1, 1, fired
+    #andi    $t1, $t0, 0x0001
+    #beq     $t1, 1, skip
     
     lw      $t2, GET_BYTECOINS      # if we dont have enough bytecoins, then don't move
     bge     $t2, 50, shoot
-    li      $t0, 5
-    sw      $t0, VELOCITY
+    #li      $t0, 0
+    #sw      $t0, VELOCITY
+
+    #li      $t1, 0
+    #waiting_cycle:
+    #addi    $t1, $t1, 1
+    #ble     $t1, 100, waiting_cycle
+    
     j       end_if
 
 shoot:
@@ -699,18 +739,17 @@ shoot:
     j       skip_2
 
 skip:
-    li      $t0, 100
+    li      $t0, 40
     sw      $t0, ANGLE
     sw      $zero, ANGLE_CONTROL
     addi    $t5, $t5, 1
-    bge     $t5, 4, skip_2
+    bge     $t5, 8, skip_2
     j       scan
 
-fired:
-    li      $t0, 170
-    sw      $t0, ANGLE
-    li      $t0, 1
-    sw      $zero, ANGLE_CONTROL
+#fired:
+   # li      $t0, 45
+  #  sw      $t0, ANGLE
+   # sw      $zero, ANGLE_CONTROL
 
 skip_2:
     li      $t0, 10
@@ -734,7 +773,7 @@ end_if:
     beq     $t2, $zero, end_045_if
 
 
-    li      $t0, -45
+    li      $t0, 180
     sw      $t0, ANGLE
     li      $t0, 1
     sw      $t0, ANGLE_CONTROL
@@ -746,12 +785,12 @@ end_045_if:
     slt     $t3, $t1, $t0      # x > 240
 
     lw      $t0, BOT_Y
-    slti    $t2, $t0, 180      # y < 80
+    slti    $t2, $t0, 80      # y < 80
 
     and     $t2, $t2, $t3
     beq     $t2, $zero, end_135_if
 
-    li      $t0, -135
+    li      $t0, 90
     sw      $t0, ANGLE
     li      $t0, 1
     sw      $t0, ANGLE_CONTROL
@@ -763,11 +802,11 @@ end_135_if:
     slt     $t3, $t1, $t0      # y > 240
 
     lw      $t0, BOT_X
-    slti    $t2, $t0, 180      # x < 80
+    slti    $t2, $t0, 80      # x < 80
     and     $t2, $t2, $t3
     beq     $t2, $zero, end_45_if
 
-    li      $t0, 45
+    li      $t0, 270
     sw      $t0, ANGLE
     li      $t0, 1
     sw      $t0, ANGLE_CONTROL
