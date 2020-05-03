@@ -709,11 +709,12 @@ scan:
     la $t0, scanner_result
     sw $t0, USE_SCANNER
     lb $t1, 2($t0)
-    li $t2, 2
+    li $t2, 1
     #li $t3, 4
     li $t4, 8
-    beq $t1, $t4, shoot
-    bne $t1, $t2, skip
+    beq $t1, $zero, skip
+    beq $t1, $t4, enemy
+    beq $t1, $t2, goaway
     #beq $t1, $t3, skip
     j   shoot
     #lw      $t1, BOT_X
@@ -738,16 +739,32 @@ scan:
     
     j       end_if
 
+goaway:
+    li      $t0, -10
+    sw      $t0, ANGLE
+    sw      $zero, ANGLE_CONTROL
+    li      $t0, 10
+    sw      $t0, VELOCITY  
+    j       end_45_if
+
+enemy:
+    sw      $zero, SHOOT_UDP_PACKET
+    li      $t0, 1
+    sw      $t0, ANGLE
+    sw      $zero, ANGLE_CONTROL
+    sw      $zero, SHOOT_UDP_PACKET
+    j       skip_2
+
 shoot:
     sw      $zero, SHOOT_UDP_PACKET
     j       skip_2
 
 skip:
-    li      $t0, 15
+    li      $t0, 5
     sw      $t0, ANGLE
     sw      $zero, ANGLE_CONTROL
     addi    $t5, $t5, 1
-    bge     $t5, 24, skip_2
+    bge     $t5, 73, skip_2
     j       scan
 
 #fired:
@@ -777,7 +794,7 @@ end_if:
     beq     $t2, $zero, end_045_if
 
 
-    li      $t0, 180
+    li      $t0, 45
     sw      $t0, ANGLE
     li      $t0, 1
     sw      $t0, ANGLE_CONTROL
@@ -818,7 +835,7 @@ end_135_if:
 end_45_if:
 
     lw      $t0, TIMER
-    addi    $t0, 25000
+    addi    $t0, 5000
     sw      $t0, TIMER
     j       interrupt_dispatch     # see if other interrupts are waiting
 
