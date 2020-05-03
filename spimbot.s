@@ -59,11 +59,14 @@ main:
     
     #Fill in your code here
     lw      $t0, TIMER
-    addi    $t0, 12500
+    addiu   $t0, 25000
     sw      $t0, TIMER
     
     li      $t0, 10
     sw      $t0, VELOCITY
+
+    la      $t0, puzzle
+    sw      $t0, REQUEST_PUZZLE
     
 loop:
     lw      $t0, has_puzzle
@@ -84,48 +87,13 @@ loop:
     la      $a1, solution
     sw      $a1, SUBMIT_SOLUTION
     sw      $zero, has_puzzle
+    la      $t0, puzzle
+    sw      $t0, REQUEST_PUZZLE
 
 skip_solve:
-    lw      $t0, BOT_X
-    li      $t1, 296
-    blt     $t0, $t1, end_corner
-    lw      $t0, BOT_Y
-    blt     $t0, $t1, end_corner
-    li		$t0, 1 
-    sw      $t0, VELOCITY
-    li      $t0, -45
-    sw      $t0, ANGLE
-    li		$t0, 1
-    sw      $t0, ANGLE_CONTROL
-
-
-end_corner: 
-
+    
     j       loop
-
     jr      $ra
-
-# void toggle_light(int row, int col, LightsOut* puzzle, int action_num){
-#     int num_rows = puzzle->num_rows;
-#     int num_cols = puzzle->num_cols;
-#     int num_colors = puzzle->num_colors;
-#     unsigned char* board = (puzzle-> board);
-#     board[row*num_cols + col] = (board[row*num_cols + col] + action_num) % num_colors;
-#     if (row > 0){
-#         board[(row-1)*num_cols + col] = (board[(row-1)*num_cols + col] + action_num) % num_colors;
-#     }
-#     if (col > 0){
-#         board[(row)*num_cols + col-1] = (board[(row)*num_cols + col-1] + action_num) % num_colors;
-#     }
-#     
-#     if (row < num_rows - 1){
-#         board[(row+1)*num_cols + col] = (board[(row+1)*num_cols + col] + action_num) % num_colors;
-#     }
-# 
-#     if (col < num_cols - 1){
-#         board[(row)*num_cols + col+1] = (board[(row)*num_cols + col+1] + action_num) % num_colors;
-#     }
-# }
 
 .globl toggle_light
 toggle_light:
@@ -241,46 +209,7 @@ toggle_light:
     jr      $ra
 
 
-# const int MAX_GRIDSIZE = 16;
-# struct LightsOut {
-#     int num_rows;
-#     int num_cols;
-#     int num_color;
-#     unsigned char board[MAX_GRIDSIZE*MAX_GRIDSIZE];
-#     bool clue[MAX_GRIDSIZE*MAX_GRIDSIZE]; //(using bytes in SpimBot)
-#     };
 
-# bool solve(LightsOut* puzzle, unsigned char* solution, int row, int col){
-#     int num_rows = puzzle->num_rows; 
-#     int num_cols = puzzle->num_cols;
-#     int num_colors = puzzle->num_colors;
-#     int next_row = ((col == num_cols-1) ? row + 1 : row);
-#     if (row >= num_rows || col >= num_cols) {
-#          return board_done(num_rows,num_cols,puzzle->board);
-#     }
-#     if (row != 0) {
-#         int actions = (num_colors - puzzle->board[(row-1)*num_cols + col]) % num_colors;
-#         solution[row*num_cols + col] = actions;
-#         toggle_light(row, col, puzzle, actions);
-#         if (solve(puzzle,solution, next_row, (col + 1) % num_cols)) {
-#             return true;
-#         }
-#         solution[row*num_cols + col] = 0;
-#         toggle_light(row, col, puzzle, num_colors - actions);
-#         return false;
-#     }
-# 
-#     for(char actions = 0; actions < num_colors; actions++) {
-#         solution[row*num_cols + col] = actions;
-#         toggle_light(row, col, puzzle, actions);
-#         if (solve(puzzle,solution, next_row, (col + 1) % num_cols)) {
-#             return true;
-#         }
-#         toggle_light(row, col, puzzle, num_colors - actions); 
-#         solution[row*num_cols + col] = 0;
-#     }
-#     return false;
-# }
 .globl solve
 solve:
     ## Stack setup
@@ -383,17 +312,7 @@ solve:
     jr      $ra
 
     solve_if_done_skip:
-#if (row != 0) {
-#         int actions = (num_colors - puzzle->board[(row-1)*num_cols + col]) % num_colors;
-#         solution[row*num_cols + col] = actions;
-#         toggle_light(row, col, puzzle, actions);
-#         if (solve(puzzle,solution, next_row, (col + 1) % num_cols)) {
-#             return true;
-#         }
-#         solution[row*num_cols + col] = 0;
-#         toggle_light(row, col, puzzle, num_colors - actions);
-#         return false;
-#     }
+
     beq     $s5, $zero, solve_if_row_not_zero_skip
     sub     $t0, $s5, 1
     mul     $t0, $t0, $s1
@@ -564,13 +483,7 @@ solve:
     jr      $ra
 
 
-# void zero_board(int num_rows, int num_cols, unsigned char* solution){
-#     for (int row = 0; row < num_rows; row++) {
-#         for (int col = 0; col < num_cols; col++) {
-#             solution[(row)*num_cols + col] = 0;
-#         }
-#     }
-# }
+
 .globl solver_zero_board
 solver_zero_board:
     ## Variables corresponding to registers:
@@ -610,17 +523,7 @@ solver_zero_board:
     jr      $ra
     
 
-# // it just checks if all lights are off 
-# bool board_done(int num_rows, int num_cols,unsigned char* board){ 
-#     for (int row = 0; row < num_rows; row++) {
-#         for (int col = 0; col < num_cols; col++) {
-#             if (board[(row)*num_cols + col] != 0) {
-#                 return false;
-#             }
-#         }
-#     }
-#     return true;
-# }
+
 .globl solver_board_done
 solver_board_done:
     ## Variables corresponding to registers:
@@ -670,6 +573,7 @@ solver_board_done:
         # @RETURN 1
         li      $v0, 1
     jr      $ra
+
 
 .kdata
 chunkIH:    .space 40
@@ -730,88 +634,148 @@ interrupt_dispatch:                 # Interrupt:
 bonk_interrupt:
     sw      $0, BONK_ACK
     #Fill in your bonk handler code here
-    lw      $t1, TIMER
-    li      $t2, 360
-    rem     $t0, $t1, $t2
+    lw      $t0, BOT_X
+    slti    $t2, $t0, 24
+    li      $t1, 296
+    slt     $t3, $t1, $t0
+    or      $t4, $t2, $t3       # x < 24 || x > 296
+
+    lw      $t0, BOT_Y
+    slti    $t2, $t0, 24
+    li      $t1, 296
+    slt     $t3, $t1, $t0      
+    or      $t2, $t2, $t3       # y < 24 || y > 296
+
+    or      $t2, $t2, $t4
+
+    beq     $t4, 1, else
+
+    li      $t0, 233
+    sw      $t0, ANGLE
+    sw      $zero, ANGLE_CONTROL
+    li      $t0, 5
+    sw      $t0, VELOCITY
+    j       end_loc_if
+
+else:
+    li      $t0, 90
     sw      $t0, ANGLE
     sw      $zero, ANGLE_CONTROL
     li      $t0, 10
     sw      $t0, VELOCITY
+
+end_loc_if:
     j       interrupt_dispatch      # see if other interrupts are waiting
 
 timer_interrupt:
     sw      $0, TIMER_ACK
     #Fill in your timer interrupt code here
-#     la      $t0, ANGLE
-#     lw      $t0, 0($t0)
-#     li      $t1, 360
-#     rem     $t0, $t0, $t1
-#     bne     $t0, $zero, else
-#     li      $t0, -90
-#     sw      $t0, ANGLE
-#     sw      $zero, ANGLE_CONTROL
-#     j		end_if				# jump to end_if
-
-# else:
-#     li      $t1, 270
-#     bne     $t0, $t1, end_if
-#     li      $t0, -90
-#     sw      $t0, ANGLE
-#     sw      $zero, ANGLE_CONTROL
-    #li      $t0, 47
-    #sw      $t0, ANGLE
-    #sw      $zero, ANGLE_CONTROL
     li      $t5, 0
     li      $t0, 0
-    sw      $t0, VELOCITY
+    sw      $t0, VELOCITY          # stop first
 scan:
-    
     la      $t0, scanner_result
     sw      $t0, USE_SCANNER
     lw      $t0, scanner_result
 
-    beq     $t0, $zero, skip
-    andi    $t1, $t0, 0x00000400 
-    beq     $t1, $zero, skip
-    
-    lw      $t2, GET_BYTECOINS  # if we dont have enough bytecoins, then solve a puzzle
-    bge     $t2, 50, shoot
-    la      $a0, puzzle
-    la      $a1, solution
-    li      $a2, 0
-    li      $a3, 0
-    jal     solve #but this line not work...
-    la      $a1, solution
-    sw      $a1, SUBMIT_SOLUTION
-shoot:
+    lw      $t1, BOT_X
+    lw      $t2, BOT_Y
 
-    sw      $zero, SHOOT_UDP_PACKET
+    beq     $t0, $zero, skip
+    srl     $t0, $t0, 16
+    andi    $t1, $t0, 0x0004
+    beq     $t1, 1, fired
+    andi    $t1, $t0, 0x0001
+    beq     $t1, 1, skip
     
+    lw      $t2, GET_BYTECOINS      # if we dont have enough bytecoins, then don't move
+    bge     $t2, 50, shoot
+    li      $t0, 5
+    sw      $t0, VELOCITY
+    j       end_if
+
+shoot:
+    sw      $zero, SHOOT_UDP_PACKET
     j       skip_2
 
 skip:
-    li      $t0, 90
+    li      $t0, 100
     sw      $t0, ANGLE
     sw      $zero, ANGLE_CONTROL
     addi    $t5, $t5, 1
     bge     $t5, 4, skip_2
-    
     j       scan
+
+fired:
+    li      $t0, 170
+    sw      $t0, ANGLE
+    li      $t0, 1
+    sw      $zero, ANGLE_CONTROL
 
 skip_2:
     li      $t0, 10
     sw      $t0, VELOCITY
-    lw      $t0, has_puzzle
-    beq     $t0, $zero, get_puzzle
-    j       end_if
-
-get_puzzle:
-    la      $t0, puzzle
-    sw      $t0, REQUEST_PUZZLE
 
 end_if:
+    lw      $t0, BOT_X
+    slti    $t2, $t0, 200
+    li      $t1, 120
+    slt     $t3, $t1, $t0
+    and     $t4, $t2, $t3       # 120 < x < 200
+
+    lw      $t0, BOT_Y
+    slti    $t2, $t0, 200
+    li      $t1, 120
+    slt     $t3, $t1, $t0      
+    and     $t2, $t2, $t3       # 120 < y < 200
+
+    and     $t2, $t2, $t4
+
+    beq     $t2, $zero, end_045_if
+
+
+    li      $t0, -45
+    sw      $t0, ANGLE
+    li      $t0, 1
+    sw      $t0, ANGLE_CONTROL
+
+end_045_if:
+
+    lw      $t0, BOT_X
+    li      $t1, 240
+    slt     $t3, $t1, $t0      # x > 240
+
+    lw      $t0, BOT_Y
+    slti    $t2, $t0, 180      # y < 80
+
+    and     $t2, $t2, $t3
+    beq     $t2, $zero, end_135_if
+
+    li      $t0, -135
+    sw      $t0, ANGLE
+    li      $t0, 1
+    sw      $t0, ANGLE_CONTROL
+
+end_135_if:   
+
+    lw      $t0, BOT_Y
+    li      $t1, 240
+    slt     $t3, $t1, $t0      # y > 240
+
+    lw      $t0, BOT_X
+    slti    $t2, $t0, 180      # x < 80
+    and     $t2, $t2, $t3
+    beq     $t2, $zero, end_45_if
+
+    li      $t0, 45
+    sw      $t0, ANGLE
+    li      $t0, 1
+    sw      $t0, ANGLE_CONTROL
+
+end_45_if:
+
     lw      $t0, TIMER
-    addi    $t0, 12500
+    addi    $t0, 25000
     sw      $t0, TIMER
     j       interrupt_dispatch     # see if other interrupts are waiting
 
@@ -827,6 +791,8 @@ request_puzzle_interrupt:
 respawn_interrupt:
     sw      $0, RESPAWN_ACK
     #Fill in your respawn handler code here
+    li      $t0, 10
+    sw      $t0, VELOCITY
     j       interrupt_dispatch
 
 non_intrpt:                         # was some non-interrupt
