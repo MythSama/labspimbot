@@ -680,7 +680,9 @@ bonk_interrupt:
 
     beq     $t4, 1, else
 
+    lw      $t1, TIMER
     li      $t0, 233
+    rem     $t0, $t1, $t0
     sw      $t0, ANGLE
     sw      $zero, ANGLE_CONTROL
     li      $t0, 5
@@ -708,9 +710,11 @@ scan:
     sw $t0, USE_SCANNER
     lb $t1, 2($t0)
     li $t2, 2
-    li $t3, 4
+    #li $t3, 4
+    li $t4, 8
+    beq $t1, $t4, shoot
     bne $t1, $t2, skip
-    beq $t1, $t3, skip
+    #beq $t1, $t3, skip
     j   shoot
     #lw      $t1, BOT_X
     #lw      $t2, BOT_Y
@@ -722,8 +726,8 @@ scan:
     #andi    $t1, $t0, 0x0001
     #beq     $t1, 1, skip
     
-    lw      $t2, GET_BYTECOINS      # if we dont have enough bytecoins, then don't move
-    bge     $t2, 50, shoot
+    #lw      $t2, GET_BYTECOINS      # if we dont have enough bytecoins, then don't move
+    #bge     $t2, 50, shoot
     #li      $t0, 0
     #sw      $t0, VELOCITY
 
@@ -739,11 +743,11 @@ shoot:
     j       skip_2
 
 skip:
-    li      $t0, 40
+    li      $t0, 15
     sw      $t0, ANGLE
     sw      $zero, ANGLE_CONTROL
     addi    $t5, $t5, 1
-    bge     $t5, 8, skip_2
+    bge     $t5, 24, skip_2
     j       scan
 
 #fired:
